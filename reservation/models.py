@@ -5,7 +5,6 @@ User = get_user_model()
 
 class Room(models.Model):
     name = models.CharField(max_length=10)
-    floor = models.PositiveIntegerField()
     
     def __srt__(self):
         return self.name
