@@ -4,10 +4,10 @@
 
 {% block content %}
 
-<h1 class="mt-4">2階ゼミ室</h1>
+<h1 class="mt-4">{{ room.name }}</h1>
 <ol class="breadcrumb mb-4">
-    <li class="breadcrumb-item active"><a href="#">ホーム</a></li>
-    <li class="breadcrumb-item active">2階ゼミ室</li>
+    <li class="breadcrumb-item active"><a href="{% url 'home' %}">ゼミ室一覧</a></li>
+    <li class="breadcrumb-item active">{{ room.name }}</li>
 </ol>
 <div class="mb-5">
     <img class="img-fluid mx-auto d-block" src="https://dummyimage.com/1500x500/dee2e6/6c757d.jpg&text=Calendar+here!" alt="">
