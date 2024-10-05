@@ -1,1 +1,26 @@
-<p>ルーム</p>
+{% extends "reservation/base.html" %}
+
+{% block title %}部屋{% endblock title %}
+
+{% block content %}
+
+<h1 class="mt-4">2階ゼミ室</h1>
+<ol class="breadcrumb mb-4">
+    <li class="breadcrumb-item active"><a href="#">ホーム</a></li>
+    <li class="breadcrumb-item active">2階ゼミ室</li>
+</ol>
+<div class="mb-5">
+    <img class="img-fluid mx-auto d-block" src="https://dummyimage.com/1500x500/dee2e6/6c757d.jpg&text=Calendar+here!" alt="">
+</div>
+<div class="row mb-5">
+    <div class="col text-end">
+        <a href="#" id="cancelBtn" class="btn btn-secondary disabled">予約をキャンセルする</a>
+    </div>
+    <form class="col" action="" method="POST">
+        {% csrf_token %}
+        <button id="confirmBtn" type="submit" class="btn btn-primary disabled">予約を確認する</button>
+    </form>
+</div>            
+
+{% endblock content %}
+
