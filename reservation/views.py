@@ -4,7 +4,7 @@ from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
 from django.http import Http404, HttpResponse, JsonResponse
 from django.middleware.csrf import get_token
-from django.shortcuts import get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 
 from .models import Room, Reservation
 from .forms import ReservationForm, CalendarForm
@@ -45,7 +45,12 @@ def add_reservation(request, pk):
             )
             reservation.save()
             
-            return HttpResponse("")
+            return JsonResponse({
+                'id': reservation.id,
+                'title': reservation.title,
+                'start': reservation.start_time,
+                'end': reservation.end_time,
+            })
         
         except json.JSONDecodeError:
             raise Http404("データの読み込みに失敗しました。")
@@ -71,6 +76,7 @@ def get_reservations(request, pk):
         events = []
         for reservation in reservations:
             events.append({
+                "id": reservation.id,
                 "title": reservation.title,
                 "start": reservation.start_time.isoformat(),
                 "end": reservation.end_time.isoformat(),
@@ -78,4 +84,19 @@ def get_reservations(request, pk):
 
         return JsonResponse(events, safe=False)
 
+    raise Http404("不正なリクエストです")
+
+def reservation_detail(request, pk, reservation_id):
+    reservation = get_object_or_404(Reservation, pk=reservation_id)
+
+    return render(request, 'reservation/reservation_detail.html', {
+        'reservation': reservation,
+    })
+    
+def delete_reservation(request, pk, reservation_id):
+    if request.method == "DELETE":
+        reservation = get_object_or_404(Reservation, pk=reservation_id)
+        reservation.delete()
+        return JsonResponse({"message": "予約が削除されました"}, status=200)
+    
     raise Http404("不正なリクエストです")

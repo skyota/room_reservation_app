@@ -12,15 +12,14 @@
 <div class="mb-5">
     <div id="calendar" data-room-id="{{ room.id }}"></div>
 </div>
-<div class="row mb-5">
+<div class="row mb-3">
     <div class="col text-end">
-        <a href="#" id="cancelBtn" class="btn btn-secondary disabled">予約をキャンセルする</a>
+        <button id="cancelBtn" class="btn btn-danger disabled">予約をキャンセルする</button>
     </div>
-    <form class="col" action="" method="POST">
-        {% csrf_token %}
-        <button id="confirmBtn" type="submit" class="btn btn-primary disabled">予約を確認する</button>
-    </form>
-</div>            
+    <div class="col">
+        <button id="deselectBtn" class="btn btn-secondary disabled">選択を解除する</button>
+    </div>
+</div>
 
 {% endblock content %}
 
@@ -35,6 +34,9 @@
     axios.defaults.xsrfCookieName = "csrftoken";
     axios.defaults.headers.common['X-CSRFTOKEN'] = csrfToken;
 
+    let selectedEvent = null;
+    let isEventSelected = false;
+
     document.addEventListener('DOMContentLoaded', function() {
         var calendarEl = document.getElementById('calendar');
         var roomId = calendarEl.getAttribute('data-room-id');
@@ -45,14 +47,44 @@
             timeZone: 'Asia/Tokyo',
             locale: 'ja',
             buttonText: {
-                    today:    '今日',
+                    today: '今日',
             },
             slotMinTime: '08:00:00',
             slotMaxTime: '19:00:00',
             slotDuration: '00:30:00',
             selectable: true,
             selectOverlap: false,
+            
+            // 予約を選択したときの状態
+            eventClick: function(info) {
+                if (isEventSelected) {
+                    alert("他の予約が選択中です。選択を解除してください。");
+                    return;
+                }
+
+                selectedEvent = info.event;
+                document.getElementById('cancelBtn').classList.remove('disabled');
+                document.getElementById('cancelBtn').disabled = false;
+
+                document.getElementById('deselectBtn').classList.remove('disabled');
+                document.getElementById('deselectBtn').disabled = false;
+
+                const allEvents = document.querySelectorAll('.fc-event');
+                allEvents.forEach(event => event.classList.remove('selected-event'));
+
+                info.el.classList.add('selected-event');
+
+                isEventSelected = true;
+
+            },
+
+            // 予約を登録
             select: function(info) {
+                if (isEventSelected) {
+                    alert("予約が選択中です。選択を解除してください。");
+                    return;
+                }
+
                 const reservationTitle = prompt('使用用途を入力してください。');
                 if (reservationTitle) {
                     axios.post(`/room/${roomId}/add_reservation/`, {
@@ -61,11 +93,17 @@
                         end_date: info.end.toISOString()
                     })
                     .then(function(response) {
-                        calendar.addEvent({
+                        const newEventId = response.data.id;
+
+                        const newEvent = {
+                            id: newEventId,
                             title: reservationTitle,
                             start: info.start,
                             end: info.end,
-                        });
+                        };
+
+                        calendar.addEvent(newEvent);
+
                         alert("予約が正常に登録されました。");
                     })
                     .catch(function(error) {
@@ -74,6 +112,7 @@
                 };
             },
 
+            // 予約の表示設定
             events: function (info, successCallback, failureCallback) {
                 axios.get(`/room/${roomId}/list/`, {
                     params: {
@@ -82,6 +121,12 @@
                 },
                 })
                 .then((response) => {
+                    const events = response.data.map(event => ({
+                        id: event.id,
+                        title: event.title,
+                        start: event.start,
+                        end: event.end
+                    }));
                     successCallback(response.data);
                 })
                 .catch(() => {
@@ -92,6 +137,45 @@
 
         });
         calendar.render();
+
+        // 選択解除
+        document.getElementById('deselectBtn').addEventListener('click', function() {
+            const selectedEventElement = document.querySelector('.selected-event');
+            if (selectedEventElement) {
+                selectedEventElement.classList.remove('selected-event');
+            }
+
+            document.getElementById('cancelBtn').disabled = true;
+            document.getElementById('cancelBtn').classList.add('disabled');
+
+            document.getElementById('deselectBtn').disabled = true;
+            document.getElementById('deselectBtn').classList.add('disabled');
+
+            selectedEvent = null;
+            isEventSelected = false;
+        });
+
+        // 予約削除
+        document.getElementById('cancelBtn').addEventListener('click', function() {
+            if (isEventSelected && selectedEvent) {
+                const confirmation = confirm('本当にこの予約をキャンセルしますか？');
+                if (confirmation) {
+                    axios.delete(`/room/${roomId}/reservation/${selectedEvent.id}/delete/`)
+                    .then(function(response) {
+                        selectedEvent.remove();
+                        selectedEvent = null;
+                        document.getElementById('cancelBtn').disabled = true;
+                        document.getElementById('deselectBtn').disabled = true;
+                        alert("予約がキャンセルされました。");
+                        isEventSelected = false;
+                    })
+                    .catch(function(error) {
+                        alert("予約のキャンセルに失敗しました。");
+                    });
+                }
+            }
+        });
+
     });
 </script>
 
