@@ -1,26 +1,217 @@
 {% extends "reservation/base.html" %}
 
-{% block title %}部屋{% endblock title %}
+{% block title %}{{ room.name }}{% endblock title %}
 
 {% block content %}
 
-<h1 class="mt-4">2階ゼミ室</h1>
+<h1 class="mt-4">{{ room.name }}</h1>
 <ol class="breadcrumb mb-4">
-    <li class="breadcrumb-item active"><a href="#">ホーム</a></li>
-    <li class="breadcrumb-item active">2階ゼミ室</li>
+    <li class="breadcrumb-item active"><a href="{% url 'home' %}">ゼミ室一覧</a></li>
+    <li class="breadcrumb-item active">{{ room.name }}</li>
 </ol>
 <div class="mb-5">
-    <img class="img-fluid mx-auto d-block" src="https://dummyimage.com/1500x500/dee2e6/6c757d.jpg&text=Calendar+here!" alt="">
+    <div id="calendar" data-room-id="{{ room.id }}"></div>
 </div>
-<div class="row mb-5">
+<div class="row mb-3">
     <div class="col text-end">
-        <a href="#" id="cancelBtn" class="btn btn-secondary disabled">予約をキャンセルする</a>
+        <button id="cancelBtn" class="btn btn-danger disabled">予約をキャンセルする</button>
     </div>
-    <form class="col" action="" method="POST">
-        {% csrf_token %}
-        <button id="confirmBtn" type="submit" class="btn btn-primary disabled">予約を確認する</button>
-    </form>
-</div>            
+    <div class="col">
+        <button id="deselectBtn" class="btn btn-secondary disabled">選択を解除する</button>
+    </div>
+</div>
 
 {% endblock content %}
 
+{% block script %}
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script>
+    const csrfToken = "{{ csrf_token }}";
+
+    axios.defaults.xsrfHeaderName = "X-CSRFTOKEN";
+    axios.defaults.xsrfCookieName = "csrftoken";
+    axios.defaults.headers.common['X-CSRFTOKEN'] = csrfToken;
+
+    let selectedEvent = null;
+    let isEventSelected = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var roomId = calendarEl.getAttribute('data-room-id');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'timeGridWeek',
+            allDaySlot: false,
+            height: 500,
+            timeZone: 'Asia/Tokyo',
+            locale: 'ja',
+            buttonText: {
+                    today: '今日',
+            },
+            slotMinTime: '08:00:00',
+            slotMaxTime: '19:00:00',
+            slotDuration: '00:30:00',
+            selectable: true,
+            selectOverlap: false,
+            
+            // 予約を選択したときの状態
+            eventClick: function(info) {
+                if (isEventSelected) {
+                    alert("他の予約が選択中です。選択を解除してください。");
+                    return;
+                }
+
+                selectedEvent = info.event;
+                isEventSelected = true;
+
+                const overlay = document.createElement('div');
+                overlay.id = 'popupOverlay';
+                overlay.className = 'popup-overlay';
+                document.body.appendChild(overlay);
+
+                // ポップアップを作成
+                const popupContent = `
+                    <div id="popup" class="popup">
+                        <h4>予約詳細</h4>
+                        <p><strong>利用時間:</strong> ${info.event.start.toISOString().slice(11, 16)} ~ ${info.event.end.toISOString().slice(11, 16)}</p>
+                        <p><strong>利用用途:</strong> ${info.event.title}</p>
+                        <p><strong>利用者:</strong> ${info.event.extendedProps.username}</p>
+                        <p><strong>研究室:</strong> ${info.event.extendedProps.laboratory}</p>
+                        <button id="popupDeleteBtn" class="btn btn-danger">予約をキャンセルする</button>
+                        <button id="popupDeselectBtn" class="btn btn-secondary">選択を解除する</button>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', popupContent);
+
+                // 削除ボタンの動作
+                document.getElementById('popupDeleteBtn').addEventListener('click', function() {
+                    const confirmation = confirm('本当にこの予約をキャンセルしますか？');
+                    if (confirmation) {
+                        axios.delete(`/room/${roomId}/reservation/${selectedEvent.id}/delete/`)
+                        .then(function(response) {
+                            selectedEvent.remove();
+                            closePopup();
+                            alert("予約がキャンセルされました。");
+                        })
+                        .catch(function(error) {
+                            alert("予約のキャンセルに失敗しました。");
+                        });
+                    }
+                });
+
+                // 選択解除ボタンの動作
+                document.getElementById('popupDeselectBtn').addEventListener('click', function() {
+                    closePopup();
+                });
+
+                overlay.addEventListener('click', function() {
+                    closePopup();
+                });
+            },
+
+            // 予約を登録
+            select: function(info) {
+                if (isEventSelected) {
+                    alert("予約が選択中です。選択を解除してください。");
+                    return;
+                }
+                const reservationTitle = prompt('利用用途を入力してください。');
+                if (!reservationTitle) {
+                    alert("利用用途が入力されていません。");
+                    return;
+                }
+
+                const reservationUsername = prompt('利用者名を入力してください。');
+                if (!reservationUsername) {
+                    alert("利用者名が入力されていません。");
+                    return;
+                }
+
+                const reservationLaboratory = prompt('研究室を入力してください。');
+                if (!reservationLaboratory) {
+                    alert("研究室が入力されていません。");
+                    return;
+                }
+
+                axios.post(`/room/${roomId}/add_reservation/`, {
+                    title: reservationTitle,
+                    username: reservationUsername,
+                    laboratory: reservationLaboratory,
+                    start_date: info.start.toISOString(), 
+                    end_date: info.end.toISOString()
+                })
+                .then(function(response) {
+                    const newEventId = response.data.id;
+
+                    const newEvent = {
+                        id: newEventId,
+                        title: reservationTitle,
+                        username: reservationUsername,
+                        laboratory: reservationLaboratory,
+                        start: info.start,
+                        end: info.end,
+                    };
+
+                    calendar.addEvent(newEvent);
+
+                    alert("予約が正常に登録されました。");
+                })
+                .catch(function(error) {
+                    alert("予約の登録に失敗しました。");
+                });
+            },
+
+            // 予約の表示設定
+            events: function (info, successCallback, failureCallback) {
+                axios.get(`/room/${roomId}/list/`, {
+                    params: {
+                        start_date: info.start.toISOString(),
+                        end_date: info.end.toISOString(),
+                },
+                })
+                .then((response) => {
+                    const events = response.data.map(event => ({
+                        id: event.id,
+                        title: event.title,
+                        username: event.username,
+                        laboratory: event.laboratory,
+                        start: event.start,
+                        end: event.end
+                    }));
+                    successCallback(response.data);
+                })
+                .catch(() => {
+                    alert("予約データの取得に失敗しました");
+                    failureCallback();
+                });
+            },
+
+        });
+        calendar.render();
+
+        function closePopup() {
+            const popup = document.getElementById('popup');
+            if (popup) {
+                popup.remove();
+            }
+
+            const overlay = document.getElementById('popupOverlay');
+            if (overlay) {
+                overlay.remove();
+            }
+
+            document.getElementById('cancelBtn').disabled = true;
+            document.getElementById('cancelBtn').classList.add('disabled');
+
+            document.getElementById('deselectBtn').disabled = true;
+            document.getElementById('deselectBtn').classList.add('disabled');
+
+            selectedEvent = null;
+            isEventSelected = false;
+        }
+
+    });
+</script>
+
+{% endblock script %}
