@@ -45,7 +45,8 @@ def add_reservation(request, pk):
                 laboratory = laboratory,
                 start_time = start_date,
                 end_time = end_date,
-                room_id=pk
+                room_id=pk,
+                user=request.user
             )
             reservation.save()
             
@@ -75,6 +76,7 @@ def get_reservations(request, pk):
 
         reservations = Reservation.objects.filter(
             room=room,
+            user=request.user,
             start_time__lt=end_date,
             end_time__gt=start_date
         )
