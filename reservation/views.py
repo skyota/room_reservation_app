@@ -1,13 +1,11 @@
 import json
-from django.views.generic import TemplateView
 from django.views.generic.detail import DetailView
 from django.views.generic.list import ListView
-from django.http import Http404, HttpResponse, JsonResponse
+from django.http import Http404, JsonResponse
 from django.middleware.csrf import get_token
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import get_object_or_404
 
 from .models import Room, Reservation
-from .forms import ReservationForm, CalendarForm
 
 class HomeView(ListView):
     model = Room
@@ -95,13 +93,6 @@ def get_reservations(request, pk):
         return JsonResponse(events, safe=False)
 
     raise Http404("不正なリクエストです")
-
-def reservation_detail(request, pk, reservation_id):
-    reservation = get_object_or_404(Reservation, pk=reservation_id)
-
-    return render(request, 'reservation/reservation_detail.html', {
-        'reservation': reservation,
-    })
     
 def delete_reservation(request, pk, reservation_id):
     if request.method == "DELETE":
