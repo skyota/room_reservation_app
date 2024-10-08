@@ -1,10 +1,10 @@
 <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
     <a class="navbar-brand ps-3" href="{% url 'home' %}">ゼミ室予約</a>
-    <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0" id="sidebarToggle" href="#"><i class="fas fa-bars"></i></button>
+    <button class="btn btn-link btn-sm order-1 order-lg-0 me-4 me-lg-0 hide-on-lg" id="sidebarToggle" href="#"><i class="fas fa-bars"></i></button>
     {% if user.is_authenticated %}
-    <form. class="ms-auto" action="{% url 'logout' %}" method="post">{% csrf_token %}
+    <form class="ms-auto" action="{% url 'logout' %}" method="post">{% csrf_token %}
         <button type="submit" class="btn btn-outline-info me-3">ログアウト</button>
-    </form.>
+    </form>
     {% else %}
     <a href="{% url 'login' %}" class="btn btn-outline-info me-3">ログイン</a>
     {% endif %}
