@@ -31,6 +31,8 @@ def add_reservation(request, pk):
         try:
             data = json.loads(request.body)
             title = data.get("title")
+            username = data.get("username")
+            laboratory = data.get("laboratory")
             start_date = data.get("start_date")
             end_date = data.get("end_date")
             
@@ -39,6 +41,8 @@ def add_reservation(request, pk):
             
             reservation = Reservation(
                 title = title,
+                username = username,
+                laboratory = laboratory,
                 start_time = start_date,
                 end_time = end_date,
                 room_id=pk
@@ -48,6 +52,8 @@ def add_reservation(request, pk):
             return JsonResponse({
                 'id': reservation.id,
                 'title': reservation.title,
+                'username': reservation.username,
+                'laboratory': reservation.laboratory,
                 'start': reservation.start_time,
                 'end': reservation.end_time,
             })
@@ -78,6 +84,8 @@ def get_reservations(request, pk):
             events.append({
                 "id": reservation.id,
                 "title": reservation.title,
+                "username": reservation.username,
+                "laboratory": reservation.laboratory,
                 "start": reservation.start_time.isoformat(),
                 "end": reservation.end_time.isoformat(),
             })
