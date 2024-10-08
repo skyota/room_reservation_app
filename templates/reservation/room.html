@@ -155,10 +155,10 @@
 
                     calendar.addEvent(newEvent);
 
-                    alert("予約が正常に登録されました。");
+                    alert("予約が完了しました。");
                 })
                 .catch(function(error) {
-                    alert("予約の登録に失敗しました。");
+                    alert("予約に失敗しました。");
                 });
             },
 
@@ -182,7 +182,7 @@
                     successCallback(response.data);
                 })
                 .catch(() => {
-                    alert("予約データの取得に失敗しました");
+                    alert("予約の取得に失敗しました");
                     failureCallback();
                 });
             },
