@@ -53,8 +53,8 @@ class ReservationListView(View):
 
         return JsonResponse(events, safe=False)
 
-def add_reservation(request, pk):
-    if request.method == 'POST':
+class ReservationAddView(View):
+    def post(self, request, pk):
         try:
             data = json.loads(request.body)
             title = data.get("title")
@@ -67,11 +67,11 @@ def add_reservation(request, pk):
                 raise Http404("不正なデータです")
             
             reservation = Reservation(
-                title = title,
-                username = username,
-                laboratory = laboratory,
-                start_time = start_date,
-                end_time = end_date,
+                title=title,
+                username=username,
+                laboratory=laboratory,
+                start_time=start_date,
+                end_time=end_date,
                 room_id=pk,
                 user=request.user
             )
@@ -85,12 +85,11 @@ def add_reservation(request, pk):
                 'start': reservation.start_time,
                 'end': reservation.end_time,
             })
-        
+
         except json.JSONDecodeError:
             raise Http404("データの読み込みに失敗しました。")
-    
-    else:
-        raise Http404()
+        except Exception as e:
+            raise Http404(f"エラーが発生しました: {str(e)}")
     
 def delete_reservation(request, pk, reservation_id):
     if request.method == "DELETE":
