@@ -90,11 +90,9 @@ class ReservationAddView(View):
             raise Http404("データの読み込みに失敗しました。")
         except Exception as e:
             raise Http404(f"エラーが発生しました: {str(e)}")
-    
-def delete_reservation(request, pk, reservation_id):
-    if request.method == "DELETE":
+
+class ReservationDeleteView(View):
+    def delete(self, request, pk, reservation_id):
         reservation = get_object_or_404(Reservation, pk=reservation_id)
         reservation.delete()
         return JsonResponse({"message": "予約が削除されました"}, status=200)
-    
-    raise Http404("不正なリクエストです")
