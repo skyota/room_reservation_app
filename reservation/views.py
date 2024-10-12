@@ -1,5 +1,5 @@
 import json
-from django.views.generic.detail import DetailView
+from django.views.generic.detail import DetailView, View
 from django.views.generic.list import ListView
 from django.http import Http404, JsonResponse
 from django.middleware.csrf import get_token
@@ -23,6 +23,35 @@ class RoomView(DetailView):
             'csrf_token': get_token(self.request),
         })
         return context
+    
+class ReservationListView(View):
+    def get(self, request, pk):
+        room = get_object_or_404(Room, pk=pk)
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+
+        if not start_date or not end_date:
+            raise Http404("開始日または終了日が指定されていません")
+
+        reservations = Reservation.objects.filter(
+            room=room,
+            user=request.user,
+            start_time__lt=end_date,
+            end_time__gt=start_date
+        )
+
+        events = [
+            {
+                "id": reservation.id,
+                "title": reservation.title,
+                "username": reservation.username,
+                "laboratory": reservation.laboratory,
+                "start": reservation.start_time.isoformat(),
+                "end": reservation.end_time.isoformat(),
+            } for reservation in reservations
+        ]
+
+        return JsonResponse(events, safe=False)
 
 def add_reservation(request, pk):
     if request.method == 'POST':
@@ -62,37 +91,6 @@ def add_reservation(request, pk):
     
     else:
         raise Http404()
-    
-def get_reservations(request, pk):
-    if request.method == "GET":
-        room = get_object_or_404(Room, pk=pk)
-        start_date = request.GET.get("start_date")
-        end_date = request.GET.get("end_date")
-
-        if not start_date or not end_date:
-            raise Http404("開始日または終了日が指定されていません")
-
-        reservations = Reservation.objects.filter(
-            room=room,
-            user=request.user,
-            start_time__lt=end_date,
-            end_time__gt=start_date
-        )
-
-        events = []
-        for reservation in reservations:
-            events.append({
-                "id": reservation.id,
-                "title": reservation.title,
-                "username": reservation.username,
-                "laboratory": reservation.laboratory,
-                "start": reservation.start_time.isoformat(),
-                "end": reservation.end_time.isoformat(),
-            })
-
-        return JsonResponse(events, safe=False)
-
-    raise Http404("不正なリクエストです")
     
 def delete_reservation(request, pk, reservation_id):
     if request.method == "DELETE":
