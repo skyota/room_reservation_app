@@ -1,9 +1,12 @@
 import json
 from django.views.generic.detail import DetailView, View
 from django.views.generic.list import ListView
+from django.views.generic.edit import CreateView
+from django.views.generic import DeleteView
 from django.http import Http404, JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404
+from django.urls import reverse_lazy
 
 from .models import Room, Reservation
 
@@ -96,3 +99,17 @@ class ReservationDeleteView(View):
         reservation = get_object_or_404(Reservation, pk=reservation_id)
         reservation.delete()
         return JsonResponse({"message": "予約が削除されました"}, status=200)
+
+class RoomAddView(CreateView):
+    model = Room
+    template_name = 'reservation/add_room.html'
+    fields = ['name']
+    success_url = reverse_lazy('home')
+    
+    def form_valid(self, form):
+        return super().form_valid(form)
+
+class RoomDeleteView(DeleteView):
+    model = Room
+    template_name = 'reservation/room_confirm_delete.html'
+    success_url = reverse_lazy('home')     
