@@ -7,6 +7,9 @@
                 {{ room.name }}
             </a>
             {% endfor %}
+            {% if room_list %}
+            <a class="nav-link add-button" href="{% url 'add_room' %}">＋　部屋の追加</a>
+            {% endif %}
         </div>
     </div>
     <div class="sb-sidenav-footer">
